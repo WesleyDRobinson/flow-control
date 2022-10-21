@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
     addEdge,
     FitViewOptions,
@@ -11,45 +11,167 @@ import ReactFlow, {
     Connection,
     Background,
     Controls,
+    Handle,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Layout } from './Layout'
+import NumberInput, { NumberInputParams } from './customNodes/NumberInput'
+import OperationInput, { OperationInputParams } from './customNodes/OperationInput'
+import TestNode, { TestNodeParams } from './customNodes/TestNode'
+
+const nodeTypes = {
+    numberInput: NumberInput,
+    operationInput: OperationInput,
+    testNode: TestNode,
+}
+
+interface Operation {
+    value: string
+    label: string
+}
 
 export const App = () => {
-    const operations = ['increment', 'decrement', 'multiply', 'divide']
+    const operationOptions: Operation[] = [
+        { value: "increment", label: "Increment" },
+        { value: "decrement", label: "Decrement" },
+        { value: "multiply", label: "Multiply" },
+        { value: "divide", label: "Divide" },
+        { value: "add", label: "Add" },
+        { value: "equals", label: "Set equal" },
+    ]
 
-    const variable1 = { label: 'N_K', value: 1 }
+    const [xVar, setXVar] = useState<NumberInputParams>({
+        label: 'x',
+        value: "0",
+    })
+    const [yVarValue, setYVar] = useState("0")
 
-    const variable2 = { label: 'x', value: 0 }
+    const [primaryOperation, setPrimaryOperation] = useState<Operation>(operationOptions[4])
+    const [primaryOperationOutput, setPrimaryOperationOutput] = useState("")
 
-    const operation = { label: 'Select Operation', current: operations[0] }
+    const [adjustXVarOperation, setAdjustXVarOperation] = useState<Operation>(operationOptions[0])
+    const [adjustXVarFactor, setAdjustXVarFactor] = useState("1")
+
+    const [adjustYVarOperation, setAdjustYVarOperation] = useState<Operation>(operationOptions[0])
+    const [adjustYVarFactor, setAdjustYVarFactor] = useState("2")
+
+    const yVar: NumberInputParams = {
+        label: 'y',
+        value: yVarValue,
+        topHandle: true,
+        bottomHandle: true,
+        setValue: (value: any) => setYVar(value)
+    }
+
+    const primaryOperationData = {
+        label: 'Primary Operation',
+        operations: operationOptions,
+        currentOperation: primaryOperation,
+        topHandle: true,
+        bottomHandle: true,
+        setValue: (value: any) => setPrimaryOperation(value),
+        runOperation: runPrimaryOperation,
+    }
 
     const test = { label: 'Test', test: {} }
 
     const final = { label: 'Final', value: 0 }
 
-    const adjustVar1 = { label: `adjust ${variable1.label}`, value: operations[1] }
+    const adjustXVar = {
+        label: `adjust ${xVar.label}`,
+        operations: operationOptions,
+        currentOperation: adjustXVarOperation,
+        variables: [xVar, yVar],
+        adjustXVarFactor,
+        setValue: (value: any) => setAdjustXVarOperation(value),
+        factorOnChange: (value: any) => setAdjustXVarFactor(value),
+        // onChangeSetVariableValue: (value: string) => (value),
+        topHandle: true,
+        bottomHandle: true,
+    }
 
-    const adjustVar2 = { label: `adjust ${variable2.label}`, value: operations[0] }
+    const adjustYVar = {
+        label: `adjust ${yVar.label}`,
+        operations: operationOptions,
+        currentOperation: adjustYVarOperation,
+        setValue: (value: any) => setAdjustYVarOperation(value),
+        adjustYVarFactor,
+        factorOnChange: (value: any) => setAdjustYVarFactor(value),
+        variables: [xVar, yVar,],
+        onChangeSetVariableValue: (value: any) => setYVar(value),
+        topHandle: true,
+        bottomHandle: true,
+    }
+
+    const makeNumberInput = ({ id, data, position }: Node): Node => {
+        return ({ type: 'numberInput', id, data, position })
+    }
+    const makeOperationInput = ({ id, data, position }: Node): Node => {
+        return ({ type: 'operationInput', id, data, position })
+    }
+    const makeTestNode = (props: Node): Node => {
+        const { id, data, position } = props
+        return ({ type: 'testNode', id, data, position })
+    }
+
+    function runPrimaryOperation() {
+        console.log({
+            xVar,
+            yVar,
+            primaryOperation,
+            primaryOperationOutput,
+            adjustXVar,
+            adjustYVar,
+            test,
+            final,
+        })
+
+        // Do Calculation
+        let output = ''
+        switch (primaryOperation.value) {
+            default:
+                console.log('default')
+                output = ''
+                break
+
+            case 'multiply':
+                output = String(+xVar.value * +yVarValue)
+                break
+        }
+
+        setPrimaryOperationOutput(output)
+
+        // check Test!
+        // adjustX
+        // adjustY
+
+        // recurse
+    }
+
+    const xVarData = {
+        ...xVar,
+        bottomHandle: true,
+        setValue: (value: any) => setXVar(value)
+    }
 
     const initialNodes: Node[] = [
-        { id: 'variable1', data: variable1, position: { x: 5, y: 5 } },
-        { id: 'variable2', data: variable2, position: { x: 5, y: 100 } },
-        { id: 'operation', data: operation, position: { x: 5, y: 200 } },
-        { id: 'test', data: test, position: { x: 5, y: 300 } },
-        { id: 'yes-outcome', data: final, position: { x: 5, y: 400 } },
-        { id: 'var2-adjust', data: adjustVar2, position: { x: -200, y: 200 } },
-        { id: 'var1-adjust', data: adjustVar1, position: { x: -200, y: 300 } },
+        makeNumberInput({ id: 'xVar', data: xVarData, position: { x: 5, y: 5 } }),
+        makeNumberInput({ id: 'yVar', data: yVar, position: { x: 5, y: 100 } }),
+        makeOperationInput({ id: 'primaryOperation', data: primaryOperationData, position: { x: 5, y: 200 } }),
+        makeTestNode({ id: 'testOutput', data: test, position: { x: 5, y: 400 } }),
+        { id: 'yes-outcome', type: "output", data: final, position: { x: 5, y: 500 } },
+        makeOperationInput({ id: 'xVar-adjust', data: adjustYVar, position: { x: -300, y: 200 } }),
+        makeOperationInput({ id: 'yVar-adjust', data: adjustXVar, position: { x: -300, y: 400 } }),
     ];
 
     const initialEdges: Edge[] = [
-        { id: 'v1-v2', source: 'variable1', target: 'variable2' },
-        { id: 'v2-op', source: 'variable2', target: 'operation' },
-        { id: 'opt-test', source: 'operation', target: 'test' },
-        { id: 'test-yes', source: 'test', target: 'yes-outcome' },
-        { id: 'test-no', source: 'test', target: 'var2-adjust' },
-        { id: 'adjust-var1', source: 'var2-adjust', target: 'var1-adjust' },
-        { id: 're-run', source: 'var1-adjust', target: 'operation' },
+        { id: 'xVar-yVar', source: 'xVar', target: 'yVar' },
+        { id: 'xVar-primaryOperation', source: 'yVar', target: 'primaryOperation' },
+        { id: 'primaryOperation-test', source: 'primaryOperation', target: 'testOutput' },
+        { id: 'test-yes', source: 'testOutput', target: 'yes-outcome' },
+        { id: 'test-no', source: 'testOutput', target: 'xVar-adjust' },
+        { id: 'adjust-yVar', source: 'xVar-adjust', target: 'yVar-adjust' },
+        { id: 're-run', source: 'yVar-adjust', target: 'primaryOperation' },
     ];
 
     const fitViewOptions: FitViewOptions = {
@@ -60,7 +182,9 @@ export const App = () => {
     const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
     const onNodesChange = useCallback(
-        (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+        (changes: NodeChange[]) => {
+            setNodes((nds) => applyNodeChanges(changes, nds))
+        },
         [setNodes]
     );
     const onEdgesChange = useCallback(
@@ -81,6 +205,7 @@ export const App = () => {
             onConnect={onConnect}
             fitView
             fitViewOptions={fitViewOptions}
+            nodeTypes={nodeTypes}
         >
             <Background/>
             <Controls/>

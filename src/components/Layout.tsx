@@ -8,7 +8,7 @@ interface LayoutElements {
 export const Layout = ({ FlowBuilder, JSONRenderer }: LayoutElements): JSX.Element => (
     <div className={'avenir'}>
         <div className={'vh-100 flex justify-content'}>
-            <div className={'w-20 flex flex-column justify-between bg-light-blue'}>
+            <div className={'w-30 w-20-ns flex flex-column justify-between bg-light-blue'}>
                 <div className={'pa3'}>
 
                 <h1 className={'ma0 fw3'}>Flow Chart Builder</h1>
