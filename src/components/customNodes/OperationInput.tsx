@@ -38,7 +38,8 @@ export default memo(({ data }: { data: OperationInputParams }) => {
 
     const onVariableSelection = useCallback((event: any) => {
         const newVariableValue = event.target.value
-        data.onChangeSetVariableValue(newVariableValue)
+        const { onChangeSetVariableValue } = data
+        onChangeSetVariableValue && onChangeSetVariableValue(newVariableValue)
     }, [])
 
     let label
@@ -49,7 +50,7 @@ export default memo(({ data }: { data: OperationInputParams }) => {
         input = <select id="variable-list"
                         name="variable-list"
                         className={'tc pv2'}
-                        defaultValue={data.currentVariable?.value}
+                        defaultValue={data.currentOperation?.value}
                         onChange={onVariableSelection}>
             {Array.isArray(data.variables) && data.variables.map((opt: any) =>
                 <option value={opt.value} key={opt.value}>{opt.label}</option>)}
@@ -69,8 +70,10 @@ export default memo(({ data }: { data: OperationInputParams }) => {
             {data.topHandle && <Handle type="target" position={Position.Top}/>}
             <div>
                 <label htmlFor="operationSelect" className={'mr2'}>{data.label || "Operation: "}</label>
-                <select id="operationSelect" name="operationSelect" className={'tc pv2'} onChange={onChange}                         defaultValue={data.currentOperation?.value}
-                defaultValue={data.currentOperation?.value} >
+                <select id="operationSelect"
+                        name="operationSelect"
+                        className={'tc pv2'} onChange={onChange}
+                        defaultValue={data.currentOperation?.value}>
                     {data.operations.map((opt: any) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
             </div>

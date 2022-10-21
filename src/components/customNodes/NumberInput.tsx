@@ -2,11 +2,11 @@ import React, { useCallback, memo } from 'react';
 import { Handle, Position } from 'reactflow';
 
 export interface NumberInputParams {
-    label?: string
+    label: string
+    value: string
+    setValue?: (value: any) => void
     topHandle?: boolean
     bottomHandle?: boolean
-    setValue?: (value: any) => void
-    value?: string
 }
 
 export default memo(({ data }: {data: NumberInputParams}) => {
