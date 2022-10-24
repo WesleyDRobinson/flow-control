@@ -18,91 +18,106 @@ import { Layout } from './Layout'
 import NumberInput, { NumberInputParams } from './customNodes/NumberInput'
 import OperationInput, { OperationInputParams } from './customNodes/OperationInput'
 import TestNode, { TestNodeParams } from './customNodes/TestNode'
-
-const nodeTypes = {
-    numberInput: NumberInput,
-    operationInput: OperationInput,
-    testNode: TestNode,
-}
+import AdjustmentInput, { AdjustmentInputParams } from './customNodes/AdjustmentInput'
+import { BasicFlow } from "./Flows/BasicFlow";
 
 interface Operation {
     value: string
     label: string
+    by?: string
+    factors?: string[]
+    divisor?: string
+    dividend?: string
+    to?: string
+}
+
+const operationOptions: Operation[] = [
+    { value: "increment", label: "Increment", by: "1", },
+    { value: "decrement", label: "Decrement", by: "1", },
+    { value: "multiply", label: "Multiply", factors: [], },
+    { value: "divide", label: "Divide", divisor: 'x', dividend: 'y', },
+    { value: "add", label: "Add" },
+    { value: "equals", label: "Set equal", to: "", },
+]
+
+interface DataVar {
+    label: string
+    value: string
 }
 
 export const App = () => {
-    const operationOptions: Operation[] = [
-        { value: "increment", label: "Increment" },
-        { value: "decrement", label: "Decrement" },
-        { value: "multiply", label: "Multiply" },
-        { value: "divide", label: "Divide" },
-        { value: "add", label: "Add" },
-        { value: "equals", label: "Set equal" },
-    ]
 
-    const [xVar, setXVar] = useState<NumberInputParams>({
+    const [xVar, setXVar] = useState<DataVar>({
         label: 'x',
-        value: "0",
+        value: '0',
     })
-    const [yVarValue, setYVar] = useState("0")
+    const [yVar, setYVar] = useState<DataVar>({
+        label: 'y',
+        value: '0',
+    })
 
     const [primaryOperation, setPrimaryOperation] = useState<Operation>(operationOptions[4])
     const [primaryOperationOutput, setPrimaryOperationOutput] = useState("")
 
-    const [adjustXVarOperation, setAdjustXVarOperation] = useState<Operation>(operationOptions[0])
-    const [adjustXVarFactor, setAdjustXVarFactor] = useState("1")
+    const [primaryTest, setPrimaryTest] = useState<DataVar>({ label: "Test", value: "output > 10" })
+    const [primaryTestOutput, setPrimaryTestOutput] = useState("")
 
-    const [adjustYVarOperation, setAdjustYVarOperation] = useState<Operation>(operationOptions[0])
-    const [adjustYVarFactor, setAdjustYVarFactor] = useState("2")
+    const [xVarAdjustOperation, setAdjustXVarOperation] = useState<Operation>(operationOptions[0])
+    const [xVarAdjustFactor, setAdjustXVarFactor] = useState("1")
 
-    const yVar: NumberInputParams = {
-        label: 'y',
-        value: yVarValue,
-        topHandle: true,
-        bottomHandle: true,
-        setValue: (value: any) => setYVar(value)
-    }
+    const [yVarAdjustOperation, setAdjustYVarOperation] = useState<Operation>(operationOptions[0])
+    const [yVarAdjustFactor, setAdjustYVarFactor] = useState("2")
 
+    const findOperation = ({ value }: { value: string }) => operationOptions.find((op: Operation) => op.value === value)
+    const primaryOnChange = (event: any) => setPrimaryOperation((curr: Operation) => findOperation({ value: event.target.value }) || curr)
     const primaryOperationData = {
         label: 'Primary Operation',
         operations: operationOptions,
         currentOperation: primaryOperation,
         topHandle: true,
         bottomHandle: true,
-        setValue: (value: any) => setPrimaryOperation(value),
-        runOperation: runPrimaryOperation,
+        onChange: primaryOnChange,
     }
 
-    const test = { label: 'Test', test: {} }
+    const testInput = {
+        ...primaryTest,
+        setValue: (value: string) => setPrimaryTest((curr) => ({ ...curr, value }))
+    }
 
     const final = { label: 'Final', value: 0 }
 
-    const adjustXVar = {
+    const xVarAdjust = {
         label: `adjust ${xVar.label}`,
+        currentOperation: xVarAdjustOperation,
+        factor: xVarAdjustFactor,
+    }
+
+    const xInpAdjustut = {
+        ...xVarAdjust,
         operations: operationOptions,
-        currentOperation: adjustXVarOperation,
         variables: [xVar, yVar],
-        adjustXVarFactor,
-        setValue: (value: any) => setAdjustXVarOperation(value),
+        setValue: (value: any) => setAdjustXVarOperation((curr) => ({ ...curr, value })),
         factorOnChange: (value: any) => setAdjustXVarFactor(value),
-        // onChangeSetVariableValue: (value: string) => (value),
         topHandle: true,
         bottomHandle: true,
     }
 
-    const adjustYVar = {
+    const yVarAdjust = {
         label: `adjust ${yVar.label}`,
+        currentOperation: yVarAdjustOperation,
+        factor: yVarAdjustFactor,
+    }
+    const adjustYInput = {
+        ...yVarAdjust,
         operations: operationOptions,
-        currentOperation: adjustYVarOperation,
-        setValue: (value: any) => setAdjustYVarOperation(value),
-        adjustYVarFactor,
-        factorOnChange: (value: any) => setAdjustYVarFactor(value),
         variables: [xVar, yVar,],
-        onChangeSetVariableValue: (value: any) => setYVar(value),
+        setValue: (value: string) => setAdjustYVarOperation((curr) => ({ ...curr, value })),
+        factorOnChange: (value: string) => setAdjustYVarFactor(value),
         topHandle: true,
         bottomHandle: true,
     }
 
+    // as functions so we could create "Add Input" buttons
     const makeNumberInput = ({ id, data, position }: Node): Node => {
         return ({ type: 'numberInput', id, data, position })
     }
@@ -113,55 +128,43 @@ export const App = () => {
         const { id, data, position } = props
         return ({ type: 'testNode', id, data, position })
     }
-
-    function runPrimaryOperation() {
-        console.log({
-            xVar,
-            yVar,
-            primaryOperation,
-            primaryOperationOutput,
-            adjustXVar,
-            adjustYVar,
-            test,
-            final,
-        })
-
-        // Do Calculation
-        let output = ''
-        switch (primaryOperation.value) {
-            default:
-                console.log('default')
-                output = ''
-                break
-
-            case 'multiply':
-                output = String(+xVar.value * +yVarValue)
-                break
-        }
-
-        setPrimaryOperationOutput(output)
-
-        // check Test!
-        // adjustX
-        // adjustY
-
-        // recurse
+    const makeAdjustmentInput = (props: Node): Node => {
+        const { id, data, position } = props
+        return ({ type: 'adjustmentInput', id, data, position })
     }
 
-    const xVarData = {
+    const xVarInputData = {
         ...xVar,
         bottomHandle: true,
-        setValue: (value: any) => setXVar(value)
+        setValue: (value: string) => setXVar((curr) => ({ ...curr, value }))
     }
+    const XInput = makeNumberInput({ id: 'xVar', data: xVarInputData, position: { x: 5, y: 5 } })
+
+    const yVarInputData: NumberInputParams = {
+        ...yVar,
+        topHandle: true,
+        bottomHandle: true,
+        setValue: (value: string) => setYVar((curr) => ({ ...curr, value }))
+    }
+    const YInput = makeNumberInput({ id: 'yVar', data: yVarInputData, position: { x: 5, y: 100 } })
+    const PrimaryOp = makeOperationInput({
+        id: 'primaryOperation',
+        data: primaryOperationData,
+        position: { x: 5, y: 200 }
+    })
+    const TestInput = makeTestNode({ id: 'testOutput', data: testInput, position: { x: 5, y: 400 } })
+    const FinalOutput = { id: 'yes-outcome', type: "output", data: final, position: { x: 5, y: 500 } }
+    const XInputAdjust = makeAdjustmentInput({ id: 'xVar-adjust', data: xInpAdjustut, position: { x: -300, y: 200 } })
+    const YInputAdjust = makeAdjustmentInput({ id: 'yVar-adjust', data: adjustYInput, position: { x: -300, y: 400 } })
 
     const initialNodes: Node[] = [
-        makeNumberInput({ id: 'xVar', data: xVarData, position: { x: 5, y: 5 } }),
-        makeNumberInput({ id: 'yVar', data: yVar, position: { x: 5, y: 100 } }),
-        makeOperationInput({ id: 'primaryOperation', data: primaryOperationData, position: { x: 5, y: 200 } }),
-        makeTestNode({ id: 'testOutput', data: test, position: { x: 5, y: 400 } }),
-        { id: 'yes-outcome', type: "output", data: final, position: { x: 5, y: 500 } },
-        makeOperationInput({ id: 'xVar-adjust', data: adjustYVar, position: { x: -300, y: 200 } }),
-        makeOperationInput({ id: 'yVar-adjust', data: adjustXVar, position: { x: -300, y: 400 } }),
+        XInput,
+        YInput,
+        PrimaryOp,
+        TestInput,
+        FinalOutput,
+        XInputAdjust,
+        YInputAdjust,
     ];
 
     const initialEdges: Edge[] = [
@@ -174,46 +177,59 @@ export const App = () => {
         { id: 're-run', source: 'yVar-adjust', target: 'primaryOperation' },
     ];
 
-    const fitViewOptions: FitViewOptions = {
-        padding: 0.2,
-    };
+    function runPrimaryOperation({ nodes, edges }: any) {
+        console.log({
+            edges,
+            final,
+            nodes,
+            primaryOperation,
+            primaryOperationOutput,
+            primaryTest,
+            primaryTestOutput,
+            xVar,
+            xVarAdjust,
+            yVar,
+            yVarAdjust,
+        })
+
+        // Do Calculation
+        let output = ''
+
+        switch (primaryOperation.value) {
+            default:
+                console.log('default')
+                output = ''
+                break
+
+            case 'multiply':
+                output = String(+xVar.value * +yVar.value)
+                console.log('multiplied', output)
+                break
+        }
+
+        // set primary output
+        setPrimaryOperationOutput(output)
+
+        // check Test!
+        //
+        // a> print Final result
+
+        // b>
+        //      adjust x
+        //      adjust y
+
+        // recurse
+    }
 
     const [nodes, setNodes] = useState<Node[]>(initialNodes);
     const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
-    const onNodesChange = useCallback(
-        (changes: NodeChange[]) => {
-            setNodes((nds) => applyNodeChanges(changes, nds))
-        },
-        [setNodes]
-    );
-    const onEdgesChange = useCallback(
-        (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-        [setEdges]
-    );
-    const onConnect = useCallback(
-        (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
-        [setEdges]
-    );
-
-    const Flow = (
-        <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            fitView
-            fitViewOptions={fitViewOptions}
-            nodeTypes={nodeTypes}
-        >
-            <Background/>
-            <Controls/>
-        </ReactFlow>
-    );
+    const Flow = <BasicFlow nodes={nodes} setNodes={setNodes} edges={edges} setEdges={setEdges}/>
 
     const JSONRenderer = (
         <div className={'vh-75 pre pb2 bg-light-gray overflow-auto'}>{JSON.stringify({ nodes, edges }, null, 2)}</div>)
 
-    return <Layout JSONRenderer={JSONRenderer} FlowBuilder={Flow}/>
+    const RunButton = (<button onClick={() => runPrimaryOperation({ nodes, edges })}>Run Operation</button>)
+
+    return <Layout JSONRenderer={JSONRenderer} FlowBuilder={Flow} RunButton={RunButton}/>
 }

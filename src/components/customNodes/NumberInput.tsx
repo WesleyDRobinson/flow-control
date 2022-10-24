@@ -25,4 +25,4 @@ export default memo(({ data }: {data: NumberInputParams}) => {
             {data.bottomHandle && <Handle type="source" position={Position.Bottom}/>}
         </div>
     );
-}, (prev, next) => prev.data.value === next.data.value)
+})
