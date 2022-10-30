@@ -39,25 +39,26 @@ export default memo(({ data }: { data: AdjustmentInputParams }) => {
     let label
     let input
 
-    if(data.currentAdjustment?.value === 'equals') {
-        label = <label htmlFor="variable-list" className={'mr2'}>{"Variable: "}</label>
-        input = <select id="variable-list"
-                        name="variable-list"
-                        className={'tc pv2'}
-                        defaultValue={data.currentAdjustment?.value}
-                        onChange={onVariableSelection}>
-            {Array.isArray(data.variables) && data.variables.map((opt: any) =>
-                <option value={opt.value} key={opt.value}>{opt.label}</option>)}
-        </select>
-    } else {
-        label = <label htmlFor="factorNumber" className={'mr2'}>{"Factor: "}</label>
+    // wip -- equals
+    // if(data.currentAdjustment?.value === 'equals') {
+    //     label = <label htmlFor="variable-list" className={'mr2'}>{"Variable: "}</label>
+    //     input = <select id="variable-list"
+    //                     name="variable-list"
+    //                     className={'tc pv2'}
+    //                     defaultValue={data.currentAdjustment?.value}
+    //                     onChange={onVariableSelection}>
+    //         {Array.isArray(data.variables) && data.variables.map((opt: any) =>
+    //             <option value={opt.value} key={opt.value}>{opt.label}</option>)}
+    //     </select>
+    // } else {
+    label = <label htmlFor="factorNumber" className={'mr2'}>{"Factor: "}</label>
 
-        input = <input id="factorNumber"
-                       name="factorNumber"
-                       className={'tc pv2'}
-                       onChange={changeFactor}
-                       type={"number"}/>
-    }
+    input = <input id="factorNumber"
+                   name="factorNumber"
+                   className={'tc pv2'}
+                   onChange={changeFactor}
+                   type={"number"}/>
+    // }
 
     return (
         <div className={'pa2 ba br2 b--gold bg-white-60'}>
@@ -66,8 +67,8 @@ export default memo(({ data }: { data: AdjustmentInputParams }) => {
                 <label htmlFor="operationSelect" className={'mr2'}>{data.label || "Adjustment: "}</label>
                 <select id="operationSelect"
                         name="operationSelect"
-                        className={'tc pv2'} onChange={onChange}
-                        defaultValue={data.currentAdjustment?.value}>
+                        className={'tc pv2'}
+                        onChange={onChange}>
                     {data.operations.map((opt: any) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
             </div>
