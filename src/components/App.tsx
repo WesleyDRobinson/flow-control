@@ -100,8 +100,8 @@ export const App = () => {
     const [primaryTestPassed, setPrimaryTestPassed] = useState("")
     const testInput = {
         ...primaryTest,
-        setValue: (value: string) =>
-            setPrimaryTest((curr) => ({ ...curr, value }))
+        onChange: (event: any) =>
+            setPrimaryTest((curr) => ({ ...curr, value: event.target.value }))
     }
     const TestInput = makeTestNode({
         id: 'testOutput',
@@ -252,7 +252,7 @@ export const App = () => {
     // PASSED!!
     useEffect(() => {
         if(primaryTestPassed) {
-            const label = `under these conditions, with x = ${xVar.value}; y = ${yVar.value}, the final result is ${primaryOperationOutput}`
+            const label = `test condition passed with x = ${xVar.value} and y = ${yVar.value}, the final result is ${primaryOperationOutput}`
             setIsRunning(false)
             setFinalLabel(label)
             setNodes(nds =>
