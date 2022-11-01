@@ -41,14 +41,14 @@ export default memo(({ data }: { data: OperationInputParams }) => {
 
 
         return (
-            <div className={'pa2 ba br2 b--gold bg-white-60'}>
+            <div className={'w5 pa3 ba br2 bw2 b--near-black bg-white-60'}>
                 {data.topHandle && <Handle type="target" position={Position.Top}/>}
 
                 <div>
                     <label htmlFor="operationSelect" className={'mr2'}>{data.label || "Operation: "}</label>
                     <select id="operationSelect"
                             name="operationSelect"
-                            className={'tc pv2'} onChange={onChange}
+                            className={'w-100 mt2 tc pv1 nodrag'} onChange={onChange}
                             defaultValue={data.currentOperation?.value}>
                         {data.operations.map((opt: any) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>

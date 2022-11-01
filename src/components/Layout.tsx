@@ -7,18 +7,26 @@ interface LayoutElements {
 }
 
 export const Layout = ({ FlowBuilder, JSONRenderer, RunButton }: LayoutElements): JSX.Element => (
-    <div className={'avenir'}>
-        <div className={'vh-100 flex justify-content'}>
-            <div className={'w-20 w-30-ns flex flex-column justify-between bg-light-blue'}>
-                <div className={'pa3'}>
+    <div className={'avenir near-black'}>
+        <div className={'vh-100 flex'}>
+            <div className={'w-20 w-30-ns flex flex-column justify-between'}>
+                <div className={'flex-grow-1 bg-light-blue pa3 br bb bw5-ns b--black-30'}>
+                    <h1 className={'ma0 fw3'}>
+                        Flow Chart Builder
+                    </h1>
 
-                <h1 className={'ma0 fw3'}>Flow Chart Builder</h1>
-                <p>by Wesley Robinson</p>
-                    <div className={'pa2'}>{RunButton}</div>
+                    <p>
+                        by Wesley Robinson
+                    </p>
+
+                    <div className={'mt4 tc'}>
+                        {RunButton}
+                    </div>
                 </div>
 
-                <div>{JSONRenderer}</div>
+                <div className={''}>{JSONRenderer}</div>
             </div>
+
             <div className={'flex-grow-1'}>{FlowBuilder}</div>
         </div>
     </div>
