@@ -16,19 +16,18 @@ export default memo(({ data }: { data: TestNodeParams }) => {
         }, []);
 
         return (
-            <div className={'pa2 ba br2 b--gold bg-white-60'}>
+            <div className={'w5 pa3 ba br2 b--near-black bg-white-60'}>
                 {<Handle type="target" position={Position.Top}/>}
                 <div>
-                    <label htmlFor="function-test" className={'mr2'}>{data.label || "Value: "}</label>
+                    <label htmlFor="function-test" className={''}>{data.label || "Value: "}</label>
                     <input id="function-test"
                            name="function-test"
-                           className={'tc pv2'}
+                           className={'w-100 mt2 tc pv2'}
                            onChange={onChange}
                            type="text"
                            placeholder={data.value}/>
                 </div>
-                {<Handle type="source" position={Position.Bottom}/>}
-                {<Handle type="source" position={Position.Bottom}/>}
+                {<Handle type="source" position={Position.Right}/>}
             </div>
         );
     }

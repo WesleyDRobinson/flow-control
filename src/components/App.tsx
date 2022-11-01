@@ -12,6 +12,8 @@ import ReactFlow, {
     Background,
     Controls,
     Handle,
+    useEdgesState,
+    useNodesState,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Layout } from './Layout'
@@ -20,70 +22,39 @@ import OperationInput, { OperationInputParams } from './customNodes/OperationInp
 import TestNode, { TestNodeParams } from './customNodes/TestNode'
 import AdjustmentInput, { AdjustmentInputParams } from './customNodes/AdjustmentInput'
 import { BasicFlow } from "./Flows/BasicFlow";
-
-interface Operation {
-    value: string
-    label: string
-    by?: string
-    factors?: string[]
-    divisor?: string
-    dividend?: string
-    to?: string
-}
-
-const operationOptions: Operation[] = [
-    { value: "increment", label: "Increment", by: "1", },
-    { value: "decrement", label: "Decrement", by: "1", },
-    { value: "multiply", label: "Multiply", factors: [], },
-    { value: "divide", label: "Divide", divisor: 'x', dividend: 'y', },
-    { value: "add", label: "Add" },
-    // { value: "equals", label: "Set equal", to: "", },
-]
-const findOperation = ({ value }: { value: string }) =>
-    operationOptions.find((op: Operation) => op.value === value)
+import { makeAdjustmentInput, makeNumberInput, makeOperationInput, makeTestNode } from "./customNodes/makers";
+import { Operation, operationOptions, primaryOperations, findOperation } from './lib/operations'
+import { evaluateAdjustment } from "./lib/evaluateAdjustment";
 
 interface DataVar {
     label: string
     value: string
 }
 
-const APPLICATION_TIMEOUT_MS = 2000
+const APPLICATION_TIMEOUT_MS = 5000
 
 export const App = () => {
     /**
      *  PRIMARY APPLICATION STATE AND ASSOCIATED METHODS
      */
-
-        // Application State -- probably should be a state machine...
-    const [isRunning, setIsRunning] = useState(false)
-    const [adjusting, setAdjusting] = useState(false)
-
-    // as functions so we could create "Add Input" buttons
-    const makeNumberInput = ({ id, data, position }: Node): Node => {
-        return ({ type: 'numberInput', id, data, position })
-    }
-    const makeOperationInput = ({ id, data, position }: Node): Node => {
-        return ({ type: 'operationInput', id, data, position })
-    }
-    const makeTestNode = (props: Node): Node => {
-        const { id, data, position } = props
-        return ({ type: 'testNode', id, data, position })
-    }
-    const makeAdjustmentInput = (props: Node): Node => {
-        const { id, data, position } = props
-        return ({ type: 'adjustmentInput', id, data, position })
-    }
-
+        // Raw Variable
     const [xVar, setXVar] = useState<DataVar>({
-        label: 'x',
-        value: '0',
-    })
+            label: 'x',
+            value: '0',
+        })
+    // Wrap Raw Variable React Flow "data" prop
     const xVarInputData = {
         ...xVar,
         bottomHandle: true,
         setValue: (value: string) => setXVar((curr) => ({ ...curr, value }))
     }
-    const XInput = makeNumberInput({ id: 'xVar', data: xVarInputData, position: { x: 5, y: 5 } })
+    // Create XInput
+    const XInput = makeNumberInput({
+        id: 'xVar',
+        data: xVarInputData,
+        position: { x: 5, y: -35 }
+    })
+
 
     const [yVar, setYVar] = useState<DataVar>({
         label: 'y',
@@ -95,15 +66,21 @@ export const App = () => {
         bottomHandle: true,
         setValue: (value: string) => setYVar((curr) => ({ ...curr, value }))
     }
-    const YInput = makeNumberInput({ id: 'yVar', data: yVarInputData, position: { x: 5, y: 100 } })
+    const YInput = makeNumberInput({
+        id: 'yVar',
+        data: yVarInputData,
+        position: { x: 5, y: 105 },
+    })
+
 
     const [primaryOperation, setPrimaryOperation] = useState<Operation>(operationOptions[2])
     const [primaryOperationOutput, setPrimaryOperationOutput] = useState("")
     const primaryOnChange = (event: any) =>
-        setPrimaryOperation((curr: Operation) => findOperation({ value: event.target.value }) || curr)
+        setPrimaryOperation((curr: Operation) =>
+            findOperation({ value: event.target.value }) || curr)
     const primaryOperationData = {
         label: 'Primary Operation',
-        operations: operationOptions,
+        operations: primaryOperations,
         currentOperation: primaryOperation,
         topHandle: true,
         bottomHandle: true,
@@ -112,19 +89,32 @@ export const App = () => {
     const PrimaryOp = makeOperationInput({
         id: 'primaryOperation',
         data: primaryOperationData,
-        position: { x: 5, y: 200 }
+        position: { x: 5, y: 255 }
     })
 
-    const [primaryTest, setPrimaryTest] = useState<DataVar>({ label: "Test", value: "output > 10" })
+
+    const [primaryTest, setPrimaryTest] = useState<DataVar>({
+        label: "Test",
+        value: "output > 10"
+    })
     const [primaryTestPassed, setPrimaryTestPassed] = useState("")
     const testInput = {
         ...primaryTest,
-        setValue: (value: string) => setPrimaryTest((curr) => ({ ...curr, value }))
+        setValue: (value: string) =>
+            setPrimaryTest((curr) => ({ ...curr, value }))
     }
-    const TestInput = makeTestNode({ id: 'testOutput', data: testInput, position: { x: 5, y: 400 } })
+    const TestInput = makeTestNode({
+        id: 'testOutput',
+        data: testInput,
+        position: { x: 5, y: 405 }
+    })
 
-    const [xVarAdjustOperation, setAdjustXVarOperation] = useState<Operation>(operationOptions[1])
-    const [xVarAdjustFactor, setAdjustXVarFactor] = useState("1")
+
+    const [xVarAdjustOperation, setAdjustXVarOperation] = useState<Operation>(operationOptions[0])
+    const xVarAdjustOperationOnChange = (event: any) =>
+        setAdjustXVarOperation((curr: Operation) =>
+            findOperation({ value: event.target.value }) || curr)
+    const [xVarAdjustFactor, setAdjustXVarFactor] = useState("0")
     const xVarAdjust = {
         label: `adjust ${xVar.label}`,
         currentOperation: xVarAdjustOperation,
@@ -134,17 +124,21 @@ export const App = () => {
         ...xVarAdjust,
         operations: operationOptions,
         variables: [xVar, yVar],
-        setValue: (value: any) => setAdjustXVarOperation((curr) => ({ ...curr, value })),
-        factorOnChange: (value: any) => setAdjustXVarFactor(value),
-        topHandle: true,
-        bottomHandle: true,
+        opOnChange: xVarAdjustOperationOnChange,
+        factorOnChange: (event: any) => setAdjustXVarFactor(event.target.value),
+        topHandle: 'source',
+        leftHandle: 'target',
     }
     const XInputAdjust = makeAdjustmentInput({
-        id: 'xVar-adjust', data: xVarAdjustData, position: { x: -300, y: 200 }
+        id: 'xVar-adjust', data: xVarAdjustData, position: { x: 365, y: 385 }
     })
 
+
     const [yVarAdjustOperation, setAdjustYVarOperation] = useState<Operation>(operationOptions[0])
-    const [yVarAdjustFactor, setAdjustYVarFactor] = useState("2")
+    const [yVarAdjustFactor, setAdjustYVarFactor] = useState("0")
+    const yVarAdjustOperationOnChange = (event: any) =>
+        setAdjustYVarOperation((curr: Operation) =>
+            findOperation({ value: event.target.value }) || curr)
     const yVarAdjust = {
         label: `adjust ${yVar.label}`,
         currentOperation: yVarAdjustOperation,
@@ -154,18 +148,28 @@ export const App = () => {
         ...yVarAdjust,
         operations: operationOptions,
         variables: [xVar, yVar,],
-        setValue: (value: string) => setAdjustYVarOperation((curr) => ({ ...curr, value })),
-        factorOnChange: (value: string) => setAdjustYVarFactor(value),
-        topHandle: true,
-        bottomHandle: true,
+        opOnChange: yVarAdjustOperationOnChange,
+        factorOnChange: (event: any) => setAdjustYVarFactor(event.target.value),
+        topHandle: 'source',
+        bottomHandle: 'target',
     }
     const YInputAdjust = makeAdjustmentInput({
-        id: 'yVar-adjust', data: yVarAdjustData, position: { x: -300, y: 400 }
+        id: 'yVar-adjust',
+        data: yVarAdjustData,
+        position: { x: 365, y: 205 }
     })
 
+
     const [finalLabel, setFinalLabel] = useState('awaiting final outcome')
-    const final = { label: finalLabel, value: 0 }
-    const FinalOutput = { id: 'yes-outcome', type: "output", data: final, position: { x: 5, y: 500 } }
+    const final = {
+        label: finalLabel,
+    }
+    const FinalOutput = {
+        id: 'yes-outcome',
+        type: "output",
+        data: final,
+        position: { x: 205, y: 605 }
+    }
 
     const initialNodes: Node[] = [
         XInput,
@@ -187,14 +191,16 @@ export const App = () => {
         { id: 're-run', source: 'yVar-adjust', target: 'primaryOperation' },
     ];
 
+    const [isRunning, setIsRunning] = useState(false)
+    const [adjusting, setAdjusting] = useState(false)
+
     // ~2 second timeout for the app anytime it is set to Run
     useEffect(() => {
         if(isRunning) {
-            console.log('starting run')
+            setFinalLabel('running 🏃')
             const timer = setTimeout(() => {
                 setIsRunning(false)
-                setFinalLabel('calculation timed out...')
-                console.log('run over')
+                setFinalLabel('run ended')
             }, APPLICATION_TIMEOUT_MS)
 
             return () => clearTimeout(timer)
@@ -202,8 +208,8 @@ export const App = () => {
 
     }, [isRunning])
 
-    const [nodes, setNodes] = useState<Node[]>(initialNodes);
-    const [edges, setEdges] = useState<Edge[]>(initialEdges);
+    const [nodes, setNodes] = useNodesState<Node[]>(initialNodes);
+    const [edges, setEdges] = useEdgesState<Edge[]>(initialEdges);
 
     // primary test effect
     useEffect(() => {
@@ -234,7 +240,11 @@ export const App = () => {
                 const test = `${tV}${operator}${+suppliedVar}`
                 const passes = eval(test)
 
-                passes ? setPrimaryTestPassed(passes) : setAdjusting(true)
+                if(passes) {
+                    setPrimaryTestPassed(passes)
+                } else {
+                    setAdjusting(true)
+                }
             }
         }
     }, [isRunning, primaryOperationOutput])
@@ -243,106 +253,68 @@ export const App = () => {
     useEffect(() => {
         if(primaryTestPassed) {
             console.log('YAY!!! WE REALLY DID IT')
-
+            const label = `under these conditions, with x = ${xVar.value}; y = ${yVar.value}, the final result is ${primaryOperationOutput}`
             setIsRunning(false)
-            setFinalLabel(`You did it!\n${primaryOperationOutput} was achieved with x = ${xVar}; y = ${yVar}`)
+            setFinalLabel(label)
+            setNodes(nds =>
+                nds.map((node) => {
+                    if(node.id !== 'yes-outcome') {
+                        return node;
+                    }
+                    console.log(node)
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            label: label
+                        },
+                    };
+                })
+            )
         }
     }, [primaryTestPassed])
-
-    // ADJUSTMENT EVALUATION HELPER
-    function evaluateAdjustment({
-                                    operand,
-                                    operation,
-                                    factor,
-                                    allowedOperations = [],
-                                    allowedFactors = [],
-                                    setter
-                                }: any) {
-        let validOperation = true
-        let validFactor = true
-
-        if(Array.isArray(allowedOperations) && allowedOperations.length > 1) {
-            validOperation = allowedOperations.includes(operation)
-        }
-
-        if(Array.isArray(allowedFactors) && allowedFactors.length > 1) {
-            validFactor = allowedFactors.includes(factor)
-        }
-
-        let newValue = operand
-        if(validOperation && validFactor) {
-            switch (operation) {
-                default:
-                    console.log('not a valid adjustment Operation')
-                    return
-                case "increment":
-                    newValue = String(+operand + +factor)
-                    break
-                case "decrement":
-                    newValue = String(+operand - +factor)
-                    break
-                case "multiply":
-                    newValue = String(+operand * +factor)
-                    break
-                case "divide":
-                    newValue = String(+operand / +factor)
-                    break
-            }
-
-            return newValue
-            // setter((curr: DataVar) => ({ ...curr, value: newValue }))
-        }
-    }
 
     // ADJUSTMENTS
     useEffect(() => {
         if(adjusting) {
-            console.log('adjusting')
-            //adjust variables according to settings
+            let operation = xVarAdjustOperation.value
+            let operand = xVar.value
+            let factor = xVarAdjustFactor
 
             const newX = evaluateAdjustment({
-                operand: xVar.value,
-                operation: xVarAdjustOperation.value,
-                factor: xVarAdjustFactor,
+                operand,
+                operation,
+                factor,
                 // setter: setXVar
             });
 
             setXVar((curr: DataVar) => ({ ...curr, value: newX }))
 
+            operation = yVarAdjustOperation.value
+            operand = yVar.value
+            factor = yVarAdjustFactor
             const newY = evaluateAdjustment({
-                operand: yVar.value,
-                operation: yVarAdjustOperation.value,
-                factor: yVarAdjustFactor,
+                operand,
+                operation,
+                factor,
                 // setter: setYVar
             });
 
             setYVar((curr: DataVar) => ({ ...curr, value: newY }))
 
             setAdjusting(false)
+        } else {
+            if(isRunning) {
+                // recurse...
+            }
         }
     }, [adjusting])
 
     function runPrimaryOperation({ nodes, edges }: any) {
         setIsRunning(true)
-        setFinalLabel('running 🏃')
-
-        console.log({
-            edges,
-            final,
-            nodes,
-            primaryOperation,
-            primaryOperationOutput,
-            primaryTest,
-            primaryTestPassed,
-            xVar,
-            xVarAdjust,
-            yVar,
-            yVarAdjust,
-        })
 
         // Do Calculation
         let output = ''
-
         switch (primaryOperation.value) {
             default:
                 console.log('operation not valid as primary')
@@ -364,30 +336,32 @@ export const App = () => {
 
         // set primary output
         setPrimaryOperationOutput(output)
-
-        // Test is checked when output changes
-
-        // passes >
-        // print Final result
-
-        // fails>
-        //   makeAdjustments
-        //   runTest
-
-        // recurse
     }
 
     const Flow = <BasicFlow nodes={nodes} setNodes={setNodes} edges={edges} setEdges={setEdges}/>
 
+    const calculatorState = {
+        xVar,
+        yVar,
+        primaryOperation,
+        xVarAdjust,
+        yVarAdjust,
+        primaryOperationOutput,
+        primaryTest,
+        primaryTestPassed,
+        final,
+    }
+
     const JSONRenderer = (
         <div className={'vh-75 pre pb2 bg-light-gray overflow-auto'}>
-            {JSON.stringify({ nodes, edges }, null, 2)}
+            {JSON.stringify(calculatorState, null, 2)}
         </div>
     )
 
     const RunButton = (
-        <button onClick={() => runPrimaryOperation({ nodes, edges })}>
-            Run Operation
+        <button className={'ba bw2 bw3-l b--white-80 ph3-ns pv3 pv2-ns bg-black-80 white-80 pointer'}
+                onClick={() => runPrimaryOperation({ nodes, edges })}>
+            <span className={'f3-l tracked'}>Run Operation</span>
         </button>
     )
 

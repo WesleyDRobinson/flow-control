@@ -10,18 +10,20 @@ export interface AdjustmentInputParams {
     label?: string
     operations: any[]
     currentAdjustment?: Adjustment
-    onChange?: (event: any) => void
+    opOnChange?: (event: any) => void
     variables?: string[]
     factorOnChange?: (event: any) => void
     onChangeSetVariableValue?: (event: any) => void
-    topHandle?: boolean
-    bottomHandle?: boolean
+    topHandle?: 'target' | 'source'
+    leftHandle?: 'target' | 'source'
+    rightHandle?: 'target' | 'source'
+    bottomHandle?: 'target' | 'source'
 }
 
 export default memo(({ data }: { data: AdjustmentInputParams }) => {
     const onChange = useCallback((event: any) => {
-        const { onChange: dataOnChange } = data
-        typeof dataOnChange === 'function' && dataOnChange(event)
+        const { opOnChange: dataOpOnChange } = data
+        typeof dataOpOnChange === 'function' && dataOpOnChange(event)
     }, []);
 
     const changeFactor =
@@ -30,19 +32,20 @@ export default memo(({ data }: { data: AdjustmentInputParams }) => {
             typeof dataFactorChange === 'function' && dataFactorChange(event)
         }, []);
 
-    const onVariableSelection = useCallback((event: any) => {
-        const newVariableValue = event.target.value
-        const { onChangeSetVariableValue } = data
-        onChangeSetVariableValue && onChangeSetVariableValue(newVariableValue)
-    }, [])
+    // wip -- equals
+    // const onVariableSelection = useCallback((event: any) => {
+    //     const newVariableValue = event.target.value
+    //     const { onChangeSetVariableValue } = data
+    //     onChangeSetVariableValue && onChangeSetVariableValue(newVariableValue)
+    // }, [])
 
-    let label
-    let input
+    let factorLabel
+    let factorInput
 
     // wip -- equals
     // if(data.currentAdjustment?.value === 'equals') {
-    //     label = <label htmlFor="variable-list" className={'mr2'}>{"Variable: "}</label>
-    //     input = <select id="variable-list"
+    //     factorLabel = <label htmlFor="variable-list" className={'mr2'}>{"Variable: "}</label>
+    //     factorInput = <select id="variable-list"
     //                     name="variable-list"
     //                     className={'tc pv2'}
     //                     defaultValue={data.currentAdjustment?.value}
@@ -51,35 +54,38 @@ export default memo(({ data }: { data: AdjustmentInputParams }) => {
     //             <option value={opt.value} key={opt.value}>{opt.label}</option>)}
     //     </select>
     // } else {
-    label = <label htmlFor="factorNumber" className={'mr2'}>{"Factor: "}</label>
+    factorLabel = <label htmlFor="factorNumber" className={''}>{"Factor: "}</label>
 
-    input = <input id="factorNumber"
+    factorInput = <input id="factorNumber"
                    name="factorNumber"
-                   className={'tc pv2'}
+                   className={'mt2 tc pv1 nodrag'}
                    onChange={changeFactor}
                    type={"number"}/>
     // }
 
     return (
-        <div className={'pa2 ba br2 b--gold bg-white-60'}>
-            {data.topHandle && <Handle type="target" position={Position.Top}/>}
+        <div className={'w5 pa3 br2 ba b--dashed bg-white-60 shadow-1'}>
+            {data.topHandle && <Handle type={data.topHandle} position={Position.Top}/>}
+            {data.leftHandle && <Handle type={data.leftHandle} position={Position.Left}/>}
+            {data.bottomHandle && <Handle type={data.bottomHandle} position={Position.Bottom}/>}
+            {data.rightHandle && <Handle type={data.rightHandle} position={Position.Right}/>}
+
             <div>
-                <label htmlFor="operationSelect" className={'mr2'}>{data.label || "Adjustment: "}</label>
+                <label htmlFor="operationSelect" className={'tc mb2'}>{data.label || "Adjustment: "}</label>
                 <select id="operationSelect"
                         name="operationSelect"
-                        className={'tc pv2'}
+                        className={'w-100 tc mt2 pv1 nodrag'}
                         onChange={onChange}>
                     {data.operations.map((opt: any) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
             </div>
 
             {data.factorOnChange && <div className={'mt2'}>
-                {label}
-                {input}
+                {factorLabel}
+                {factorInput}
             </div>
             }
 
-            {data.bottomHandle && <Handle type="source" position={Position.Bottom}/>}
         </div>
     )
 })

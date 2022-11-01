@@ -16,11 +16,15 @@ export default memo(({ data }: {data: NumberInputParams}) => {
     }, []);
 
     return (
-        <div className={'pa2 ba br2 b--gold bg-white-60'}>
+        <div className={'w5 pa3 ba br2 b--gold bg-white-60'}>
             {data.topHandle && <Handle type="target" position={Position.Top}/>}
-            <div>
-                <label htmlFor="number" className={'mr2'}>{data.label || "Value: "}</label>
-                <input id="number" name="number" className={'tc pv2'} onChange={onChange} type="number"/>
+            <div className={''}>
+                <label htmlFor="number" className={''}>{data.label || "Value: "}</label>
+                <input id="number"
+                       name="number"
+                       className={'w-100 mt2 tc pv2 nodrag'}
+                       onChange={onChange}
+                       type="number"/>
             </div>
             {data.bottomHandle && <Handle type="source" position={Position.Bottom}/>}
         </div>
