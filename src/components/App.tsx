@@ -180,7 +180,6 @@ export const App = () => {
         XInputAdjust,
         YInputAdjust,
     ];
-
     const initialEdges: Edge[] = [
         { id: 'xVar-yVar', source: 'xVar', target: 'yVar' },
         { id: 'xVar-primaryOperation', source: 'yVar', target: 'primaryOperation' },
@@ -194,22 +193,22 @@ export const App = () => {
     const [isRunning, setIsRunning] = useState(false)
     const [adjusting, setAdjusting] = useState(false)
 
+    const [nodes, setNodes] = useNodesState<Node[]>(initialNodes);
+    const [edges, setEdges] = useEdgesState<Edge[]>(initialEdges);
+
     // ~2 second timeout for the app anytime it is set to Run
     useEffect(() => {
         if(isRunning) {
             setFinalLabel('running 🏃')
             const timer = setTimeout(() => {
-                setIsRunning(false)
                 setFinalLabel('run ended')
+                setIsRunning(false)
             }, APPLICATION_TIMEOUT_MS)
 
             return () => clearTimeout(timer)
         }
 
     }, [isRunning])
-
-    const [nodes, setNodes] = useNodesState<Node[]>(initialNodes);
-    const [edges, setEdges] = useEdgesState<Edge[]>(initialEdges);
 
     // primary test effect
     useEffect(() => {
@@ -238,6 +237,7 @@ export const App = () => {
 
             if(tV && allowedOperators.includes(operator)) {
                 const test = `${tV}${operator}${+suppliedVar}`
+                // the use of eval is strongly discouraged, but eval-ing this test string is fun
                 const passes = eval(test)
 
                 if(passes) {
@@ -252,7 +252,6 @@ export const App = () => {
     // PASSED!!
     useEffect(() => {
         if(primaryTestPassed) {
-            console.log('YAY!!! WE REALLY DID IT')
             const label = `under these conditions, with x = ${xVar.value}; y = ${yVar.value}, the final result is ${primaryOperationOutput}`
             setIsRunning(false)
             setFinalLabel(label)
@@ -261,7 +260,6 @@ export const App = () => {
                     if(node.id !== 'yes-outcome') {
                         return node;
                     }
-                    console.log(node)
                     return {
                         ...node,
                         data: {
@@ -306,18 +304,18 @@ export const App = () => {
         } else {
             if(isRunning) {
                 // recurse...
+                runPrimaryOperation()
             }
         }
     }, [adjusting])
 
-    function runPrimaryOperation({ nodes, edges }: any) {
+    function runPrimaryOperation({ nodes, edges }: any = {}) {
         setIsRunning(true)
 
         // Do Calculation
         let output = ''
         switch (primaryOperation.value) {
             default:
-                console.log('operation not valid as primary')
                 output = ''
                 break
 
